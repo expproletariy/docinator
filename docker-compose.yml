@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: docinator
+      POSTGRES_PASSWORD: docinator
+      POSTGRES_DB: docinator
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docinator -d docinator"]
+      interval: 5s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://docinator:docinator@db:5432/docinator
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

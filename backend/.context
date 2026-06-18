@@ -1,0 +1,2 @@
+docker build -t docinator-backend backend/
+docker run -p 3000:3000 docinator-backend

@@ -1,10 +1,10 @@
 import Koa from 'koa';
 import Router from 'koa-router';
+import { query } from './db';
 
 const app = new Koa();
 const router = new Router();
 
-// Define a typed route
 router.get('/', async (ctx: Koa.Context) => {
   ctx.body = {
     message: 'Welcome to Koa2 with TypeScript!',
@@ -12,7 +12,16 @@ router.get('/', async (ctx: Koa.Context) => {
   };
 });
 
-// Register routes
+router.get('/health', async (ctx: Koa.Context) => {
+  try {
+    const result = await query('SELECT NOW()');
+    ctx.body = { status: 'ok', db: result.rows[0] };
+  } catch (err) {
+    ctx.status = 503;
+    ctx.body = { status: 'error', message: 'Database unavailable' };
+  }
+});
+
 app.use(router.routes());
 app.use(router.allowedMethods());
 

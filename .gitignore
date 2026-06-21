@@ -30,4 +30,9 @@ yarn-error.log*
 # for backend
 backend/node_modules/*
 backend/dist/*
+
+# for frontend-react
+frontend-react/node_modules/*
+frontend-react/dist/*
+
 .DS_Store

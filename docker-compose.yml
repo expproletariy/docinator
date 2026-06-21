@@ -21,6 +21,13 @@ services:
     depends_on:
       - backend
 
+  frontend-react:
+    build: ./frontend-react
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+
   backend:
     build: ./backend
     ports:

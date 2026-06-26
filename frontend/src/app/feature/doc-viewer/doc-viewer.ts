@@ -4,23 +4,25 @@ import { switchMap } from 'rxjs';
 import { DecimalPipe } from '@angular/common';
 import { PageView } from '../page-view/page-view';
 import { ViewerService } from '../viewer.service';
+import { ScaleService } from '../scale.service';
 
 @Component({
   selector: 'app-doc-viewer',
   imports: [PageView, DecimalPipe],
   templateUrl: './doc-viewer.html',
   styleUrl: './doc-viewer.scss',
-  providers: [ViewerService],
+  providers: [ViewerService, ScaleService],
 })
 export class DocViewer {
   private viewerService = inject(ViewerService);
+  private scaleService = inject(ScaleService);
   private destroyRef = inject(DestroyRef);
 
   documentId = input.required<number>();
 
   document = this.viewerService.document;
-  scale = this.viewerService.scale;
-  scaledWidth = this.viewerService.scaledWidth;
+  scale = this.scaleService.scale;
+  scaledWidth = this.scaleService.scaledWidth;
 
   scaledWidthPx = computed(() => {
     const scaledSize = this.scaledWidth();
@@ -40,7 +42,7 @@ export class DocViewer {
       .subscribe();
   }
 
-  protected zoomIn = () => this.viewerService.zoomIn();
-  protected zoomOut = () => this.viewerService.zoomOut();
+  protected zoomIn = () => this.scaleService.zoomIn();
+  protected zoomOut = () => this.scaleService.zoomOut();
   protected saveAnnotations = () => this.viewerService.saveAnnotations();
 }

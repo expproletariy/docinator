@@ -3,6 +3,8 @@ import { PageModel } from '../../api/document-api.interfaces';
 import { ViewerService } from '../viewer.service';
 import { FormsModule } from '@angular/forms';
 import { Annotation, AnnotationType } from '../interfaces';
+import { toRelative, toNatural } from './utils';
+import { ScaleService } from '../scale.service';
 
 @Component({
   selector: 'app-page-view',
@@ -15,6 +17,7 @@ import { Annotation, AnnotationType } from '../interfaces';
 })
 export class PageView implements OnInit {
   private viewerService = inject(ViewerService);
+  private scaleService = inject(ScaleService);
   private elementRef = inject(ElementRef);
   private renderer = inject(Renderer2);
 
@@ -32,7 +35,7 @@ export class PageView implements OnInit {
   protected onPageLoaded(img: HTMLImageElement): void {
     this.naturalWidth = img.naturalWidth;
     this.naturalHeight = img.naturalHeight;
-    this.viewerService.setMaxNativeWidth(img.naturalWidth);
+    this.scaleService.setMaxNativeWidth(img.naturalWidth);
   }
 
   protected startAddAnnotation(downEvent: MouseEvent): void {
@@ -43,29 +46,20 @@ export class PageView implements OnInit {
     downEvent.preventDefault();
 
     const bounds = hostEl.getBoundingClientRect();
-    const relativeX = ((downEvent.clientX - bounds.left) * 100) / bounds.width;
-    const relativeY = ((downEvent.clientY - bounds.top) * 100) / bounds.height;
+    const relativeX = toRelative(downEvent.clientX, bounds.left, bounds.width);
+    const relativeY = toRelative(downEvent.clientY, bounds.top, bounds.height);
     const annotation = this.makeAnnotation('text', relativeX, relativeY);
 
     this.annotations?.update((annotations) => [...annotations, annotation]);
 
-    const unsubscribeMouseMove = this.renderer.listen(
-      'document',
-      'mousemove',
-      (moveEvent: MouseEvent) => {
-        const relativeWidth = ((moveEvent.clientX - bounds.left) * 100) / bounds.width - relativeX;
-        const relativeHeight = ((moveEvent.clientY - bounds.top) * 100) / bounds.height - relativeY;
+    this.handleMouseMove((moveEvent: MouseEvent) => {
+      const relativeWidth = toRelative(moveEvent.clientX, bounds.left, bounds.width) - relativeX;
+      const relativeHeight = toRelative(moveEvent.clientY, bounds.top, bounds.height) - relativeY;
 
-        annotation.relativeWidth.set(relativeWidth);
-        annotation.relativeHeight.set(relativeHeight);
-        annotation.naturalWidth = (this.naturalWidth * relativeWidth) / 100;
-        annotation.naturalHeight = (this.naturalHeight * relativeHeight) / 100;
-      },
-    );
-
-    const unsubscribeMouseUp = this.renderer.listen('document', 'mouseup', () => {
-      unsubscribeMouseMove();
-      unsubscribeMouseUp();
+      annotation.relativeWidth.set(relativeWidth);
+      annotation.relativeHeight.set(relativeHeight);
+      annotation.naturalWidth = toNatural(relativeWidth, this.naturalWidth);
+      annotation.naturalHeight = toNatural(relativeHeight, this.naturalHeight);
     });
   }
 
@@ -73,32 +67,21 @@ export class PageView implements OnInit {
     const hostEl = this.elementRef.nativeElement as HTMLElement;
     const bounds = hostEl.getBoundingClientRect();
 
-    const unsubscribeMouseMove = this.renderer.listen(
-      'document',
-      'mousemove',
-      (moveEvent: MouseEvent) => {
-        const relativeX =
-          ((moveEvent.clientX - bounds.left - downEvent.offsetX) * 100) / bounds.width;
-        const relativeY =
-          ((moveEvent.clientY - bounds.top - downEvent.offsetY) * 100) / bounds.height;
+    this.handleMouseMove((moveEvent: MouseEvent) => {
+      const relativeX = toRelative(moveEvent.clientX, bounds.left, bounds.width, downEvent.offsetX);
+      const relativeY = toRelative(moveEvent.clientY, bounds.top, bounds.height, downEvent.offsetY);
 
-        annotation.relativeX.set(relativeX);
-        annotation.relativeY.set(relativeY);
-        annotation.naturalX = (this.naturalWidth * relativeX) / 100;
-        annotation.naturalY = (this.naturalHeight * relativeY) / 100;
-      },
-    );
-
-    const unsubscribeMouseUp = this.renderer.listen('document', 'mouseup', () => {
-      unsubscribeMouseMove();
-      unsubscribeMouseUp();
+      annotation.relativeX.set(relativeX);
+      annotation.relativeY.set(relativeY);
+      annotation.naturalX = toNatural(relativeX, this.naturalWidth);
+      annotation.naturalY = toNatural(relativeY, this.naturalHeight);
     });
   }
 
   protected deleteNote(idx: number): void {
-    const annotations = this.annotations?.();
+    let annotations = this.annotations?.();
     if (!annotations) return;
-    annotations.splice(idx, 1);
+    annotations = annotations.filter((_, index) => index !== idx);
     this.annotations?.set(annotations);
   }
 
@@ -110,11 +93,19 @@ export class PageView implements OnInit {
       relativeY: signal(relativeY),
       relativeWidth: signal(0),
       relativeHeight: signal(0),
-      naturalX: (this.naturalWidth * relativeX) / 100,
-      naturalY: (this.naturalHeight * relativeY) / 100,
+      naturalX: toNatural(relativeX, this.naturalWidth),
+      naturalY: toNatural(relativeY, this.naturalHeight),
       naturalWidth: 0,
       naturalHeight: 0,
       value: signal(''),
     };
+  }
+
+  private handleMouseMove(callback: (moveEvent: MouseEvent) => void): void {
+    const unsubscribeMouseMove = this.renderer.listen('document', 'mousemove', callback);
+    const unsubscribeMouseUp = this.renderer.listen('document', 'mouseup', () => {
+      unsubscribeMouseMove();
+      unsubscribeMouseUp();
+    });
   }
 }

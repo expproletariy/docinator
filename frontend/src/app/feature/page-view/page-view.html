@@ -21,7 +21,7 @@
 
       <div
         class="annotation-content"
-        (mousedown)="startMoveAnnotation($event, annotation)"
+        [appAnnotationMove]="annotation"
       >
         @switch (annotation.type) {
           @case ('text') {

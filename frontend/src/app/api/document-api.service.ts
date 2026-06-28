@@ -8,7 +8,7 @@ export class DocumentApiService {
   private http = inject(HttpClient);
 
   getDocument(id: number): Observable<DocumentModel> {
-    return this.http.get<DocumentModel>(`/mocks/api/${id}.json`).pipe(
+    return this.http.get<DocumentModel>(`/api/document?documentId=${id}`).pipe(
       map((doc) => ({
         ...doc,
         pages: doc.pages.map((page) => ({

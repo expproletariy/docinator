@@ -38,5 +38,15 @@ services:
       db:
         condition: service_healthy
 
+  backend-sharp:
+    build: ./backend-sharp
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgres://docinator:docinator@db:5432/docinator
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:
